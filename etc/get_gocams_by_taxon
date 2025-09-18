@@ -1,0 +1,27 @@
+#!/bin/sh -
+
+if [ $# != 2 ]
+then
+    echo "needs two arguments:" 1>&2
+    echo "  - MOD URL as argument, eg. http://flybase.org" 1>&2
+    echo "  - a directory, where the model JSON will be written" 1>&2
+    exit 1
+fi
+
+mod_url=$1
+out_dir=$2
+
+ID_FILE=/tmp/gocam_$$_ids.txt
+
+#curl -L https://live-go-cam.geneontology.io/product/json/provider-to-model.json |
+cat /tmp/provider-to-model.json |
+  jq -r '."'$mod_url'"' |
+  perl -ne 'print "$1\n" if /.*"(.*)".*/' > $ID_FILE
+
+for id in `cat $ID_FILE`
+do
+    echo $id
+    curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
+done
+
+#rm $ID_FILE
