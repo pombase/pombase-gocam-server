@@ -85,8 +85,8 @@ async fn read_gocam_model(model_dir: &str, gocam_id: &str, flags: &HashSet<Strin
     }
 }
 
-async fn read_all_gocam_models(model_dir: &str,
-                               gocam_models_by_id: &GoCamModelMap)
+async fn read_gocam_models_by_ids(model_dir: &str,
+                                  gocam_models_by_id: &GoCamModelMap)
     -> anyhow::Result<Vec<GoCamModel>>
 {
     let mut models = vec![];
@@ -104,12 +104,16 @@ async fn read_all_gocam_models(model_dir: &str,
     Ok(models)
 }
 
-pub async fn read_connected_gocam_models(web_root_dir: &str,
+pub async fn read_connected_gocam_models(model_dir: &str,
                                          gocam_models_by_id: &GoCamModelMap,
                                          overlaps: &Vec<GoCamNodeOverlap>,
                                          flags: &HashSet<String>)
     -> anyhow::Result<GoCamModel>
 {
+    if gocam_models_by_id.is_empty() {
+        panic!();
+    }
+
     let mut overlapping_gocam_ids = HashSet::new();
     for overlap in overlaps {
         for (model_id, _, _) in overlap.models.iter() {
@@ -125,7 +129,7 @@ pub async fn read_connected_gocam_models(web_root_dir: &str,
         }
 
         let flags = HashSet::new();
-        let model = read_gocam_model(web_root_dir, gocam_id, &flags).await?;
+        let model = read_gocam_model(model_dir, gocam_id, &flags).await?;
         models.push(model);
     }
 
@@ -147,13 +151,17 @@ pub async fn read_connected_gocam_models(web_root_dir: &str,
     }
 }
 
-async fn read_merged_gocam_model(web_root_dir: &str,
+async fn read_merged_gocam_model(model_dir: &str,
                                  gocam_models_by_id: &GoCamModelMap,
                                  flags: &HashSet<String>,
                                  gene_list: &BTreeSet<GoCamGeneIdentifier>)
    -> anyhow::Result<GoCamModel>
 {
-    let models: Vec<_> = read_all_gocam_models(web_root_dir, gocam_models_by_id).await?
+    if gocam_models_by_id.is_empty() {
+        panic!();
+    }
+
+    let models: Vec<_> = read_gocam_models_by_ids(model_dir, gocam_models_by_id).await?
         .into_iter()
         .filter(|model| {
             if flags.contains("trim_models") {
@@ -224,6 +232,11 @@ async fn get_cytoscape_gocam_by_id_retain_genes(Path((gocam_id_arg, gene_list)):
        -> impl IntoResponse
 {
     let gocam_models_by_id = &all_state.gocam_models_by_id;
+
+    if gocam_models_by_id.is_empty() {
+        panic!();
+    }
+
     let overlaps = &all_state.overlaps;
     let model_dir = &all_state.model_dir;
 
@@ -338,7 +351,7 @@ async fn main() {
         .expect(&format!("failed to read gocam models from {}", gocam_model_dir));
 
     let gocam_models_by_id = gocam_models.iter()
-        .map(|m| (m.id().to_owned(), m.clone()))
+        .map(|m| (m.id().strip_prefix("gomodel:").unwrap_or(m.id()).to_owned(), m.clone()))
         .collect();
 
     tracing_subscriber::fmt()
@@ -368,8 +381,9 @@ async fn main() {
 
     println!("Starting server ...");
     let app = Router::new()
-        .route("/go-cam-cytoscape/{gocam_id}", get(get_cytoscape_gocam_by_id))
-        .route("/go-cam-cytoscape/{gocam_id}/{retain_genes}", get(get_cytoscape_gocam_by_id_retain_genes))
+        .route("/", get(get_index))
+        .route("/cytoscape/model/{gocam_id}", get(get_cytoscape_gocam_by_id))
+        .route("/cytoscape/model/{gocam_id}/{retain_genes}", get(get_cytoscape_gocam_by_id_retain_genes))
         .fallback(not_found)
         .with_state(Arc::new(all_state))
         .layer(TraceLayer::new_for_http());
