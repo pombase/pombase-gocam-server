@@ -1,6 +1,15 @@
+# build with:
+# (cd ~/git/pombase-gocam-server
+#  VERSION=`perl -ne 'print "$1" if /version *= *"(\d+\.\d+\.\d+)"$/' Cargo.toml`
+#  docker build --build-arg version=$VERSION -f etc/Dockerfile -t=pombase/gocam-server:v$VERSION .)
+
 FROM debian:trixie
 
 LABEL maintainer="Kim Rutherford <kim@pombase.org>"
+
+ARG version=unset
+
+RUN echo "building v$version"
 
 ENV mod_url=UNSET
 
@@ -12,9 +21,7 @@ RUN apt-get -y update && \
     apt-get -y dist-upgrade && \
     apt-get -y install apt-utils curl git-core
 
-RUN apt install -y python3-django python3-django-allauth python3-tornado \
-    pipx gunicorn python3-seaborn python3-numpy python3-pandas \
-    python3-matplotlib python3-regex
+RUN apt install -y python3-django python3-tornado python3-regex pipx gunicorn
 
 RUN pipx install circus
 
