@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, Request, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::get, Json, Router, ServiceExt
 };
 
-use pombase_gocam_process::{model_to_cytoscape_simple, GoCamCytoscapeStyle};
+use pombase_gocam_process::{model_connections_to_cytoscope, model_to_cytoscape_simple, GoCamCytoscapeStyle};
 use serde_json::{json, Value};
 
 use tracing_subscriber::EnvFilter;
@@ -310,6 +310,36 @@ async fn get_cytoscape_gocam_by_id_retain_genes(Path((gocam_id_arg, gene_list)):
     }
 }
 
+async fn get_model_summary_for_cytoscape_all(State(all_state): State<Arc<AllState>>)
+       -> impl IntoResponse
+{
+    let overlaps = &all_state.overlaps;
+
+    let gocam_models_by_id = &all_state.gocam_models_by_id;
+
+    let ids_and_titles: Vec<(String, String)> =
+        gocam_models_by_id.iter()
+        .map(|(gocam_id, model)| {
+            (format!("gomodel:{}", gocam_id), model.title().to_owned())
+        })
+        .collect();
+
+    let model_connections = model_connections_to_cytoscope(overlaps, &ids_and_titles);
+
+    Json(model_connections.to_owned())
+}
+
+async fn get_model_summary_for_cytoscape_connected(State(all_state): State<Arc<AllState>>)
+       -> impl IntoResponse
+{
+    let overlaps = &all_state.overlaps;
+
+    let model_connections = model_connections_to_cytoscope(overlaps, &vec![]);
+
+    Json(model_connections.to_owned())
+}
+
+
 #[tokio::main]
 async fn main() {
     println!("{} v{}", PKG_NAME, VERSION);
@@ -382,8 +412,10 @@ async fn main() {
     println!("Starting server ...");
     let app = Router::new()
         .route("/", get(get_index))
-        .route("/cytoscape/model/{gocam_id}", get(get_cytoscape_gocam_by_id))
-        .route("/cytoscape/model/{gocam_id}/{retain_genes}", get(get_cytoscape_gocam_by_id_retain_genes))
+        .route("/cytoscape/model_summary/all_models", get(get_model_summary_for_cytoscape_all))
+        .route("/cytoscape/model_summary/connected_only", get(get_model_summary_for_cytoscape_connected))
+        .route("/cytoscape/model_view/{gocam_id}", get(get_cytoscape_gocam_by_id))
+        .route("/cytoscape/model_view/{gocam_id}/{retain_genes}", get(get_cytoscape_gocam_by_id_retain_genes))
         .fallback(not_found)
         .with_state(Arc::new(all_state))
         .layer(TraceLayer::new_for_http());
