@@ -33,3 +33,6 @@ HEALTHCHECK --start-period=20s --interval=10s --timeout=20s --retries=10 \
   CMD /pombase-gocam-server/etc/healthcheck
 
 CMD /pombase-gocam-server/etc/start_all.sh
+
+# server setup
+# docker service create --publish 9999:9999 --publish 9400:9400 --env mod_url="http://flybase.org" --name gocam-server-fly --replicas 1 pombase/gocam-server:v0.3.0
