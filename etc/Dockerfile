@@ -1,5 +1,6 @@
 # build with:
 # (cd ~/git/pombase-gocam-server
+#  git pull
 #  VERSION=`perl -ne 'print "$1" if /version *= *"(\d+\.\d+\.\d+)"$/' Cargo.toml`
 #  docker build --build-arg version=$VERSION -f etc/Dockerfile -t=pombase/gocam-server:v$VERSION .)
 

@@ -31,7 +31,7 @@ wc -l $ID_FILE
 for id in `cat $ID_FILE`
 do
     echo $id
-#    curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
+    curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
 done
 
 rm $ID_FILE
