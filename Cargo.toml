@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-pombase-gocam = { path = "../pombase-gocam" }
-#pombase-gocam = "0.95.0"
-pombase-gocam-process = { path = "../pombase-gocam-process" }
-#pombase-gocam-process = { git = "https://github.com/pombase/pombase-gocam-process.git", version = "0.111.0" }
+pombase-gocam = "0.96.0"
+pombase-gocam-process = { git = "https://github.com/pombase/pombase-gocam-process.git", version = "0.112.0" }
 tokio = { version = "^1", default-features = false, features = ["rt-multi-thread"]}
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6.6", features = ["fs", "normalize-path", "trace"] }
