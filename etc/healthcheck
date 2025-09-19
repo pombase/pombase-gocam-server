@@ -1,0 +1,4 @@
+#!/bin/sh -
+
+(curl -s -f http://localhost:9400 &&
+ curl -s -f http://localhost:9999/gocam_view || exit 1) > /dev/null
