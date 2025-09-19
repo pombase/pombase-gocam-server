@@ -13,8 +13,7 @@ out_dir=$2
 
 ID_FILE=/tmp/gocam_$$_ids.txt
 
-#curl -L https://live-go-cam.geneontology.io/product/json/provider-to-model.json |
-cat /tmp/provider-to-model.json |
+curl -s -L https://live-go-cam.geneontology.io/product/json/provider-to-model.json |
   jq -r '."'$mod_url'"' |
   perl -ne 'print "$1\n" if /.*"(.*)".*/' > $ID_FILE
 
@@ -24,4 +23,4 @@ do
     curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
 done
 
-#rm $ID_FILE
+rm $ID_FILE
