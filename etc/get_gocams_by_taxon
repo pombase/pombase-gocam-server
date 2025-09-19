@@ -11,16 +11,27 @@ fi
 mod_url=$1
 out_dir=$2
 
+filter_ids='NO_FILTER'
+
+if [ $mod_url = "http://flybase.org" ]
+then
+    # human models:
+    filter_ids="66187e4700001274 654d809000000794 682fbcd000004292 654d809000000802"
+fi
+
 ID_FILE=/tmp/gocam_$$_ids.txt
 
 curl -s -L https://live-go-cam.geneontology.io/product/json/provider-to-model.json |
   jq -r '."'$mod_url'"' |
-  perl -ne 'print "$1\n" if /.*"(.*)".*/' > $ID_FILE
+  perl -ne 'print "$1\n" if /.*"(.*)".*/' |
+  perl -e '@filter_ids = split / /, shift; while (defined (my $line = <>)) { chomp $line; if (!grep { $line eq $_ } @filter_ids) { print "$line\n" } }' "$filter_ids" > $ID_FILE
+
+wc -l $ID_FILE
 
 for id in `cat $ID_FILE`
 do
     echo $id
-    curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
+#    curl -s -L https://live-go-cam.geneontology.io/product/json/low-level/$id.json > $out_dir/$id.json
 done
 
 rm $ID_FILE
