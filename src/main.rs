@@ -1,3 +1,4 @@
+// A mini server for GO-CAMs
 
 use getopts;
 
@@ -430,6 +431,4 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
-
-
 }

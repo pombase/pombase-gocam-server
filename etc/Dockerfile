@@ -28,7 +28,6 @@ RUN pipx install circus
 
 RUN apt install -y jq rustc cargo
 
-ENV foo=bar
 RUN git clone https://github.com/pombase/pombase-python-web.git
 RUN git clone https://github.com/pombase/pombase-gocam-server.git
 
@@ -43,4 +42,4 @@ HEALTHCHECK --start-period=20s --interval=10s --timeout=20s --retries=10 \
 CMD /pombase-gocam-server/etc/start_all.sh
 
 # server setup
-# docker service create --publish 9999:9999 --publish 9400:9400 --env mod_url="http://flybase.org" --name gocam-server-fly --replicas 1 pombase/gocam-server:v0.3.0
+# docker service create --publish 9999:9999 --publish 9400:9400 --env mod_url="http://flybase.org" --name gocam-server-fly --replicas 1 pombase/gocam-server:v0.6.0
