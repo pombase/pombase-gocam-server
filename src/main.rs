@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, Request, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::get, Json, Router, ServiceExt
 };
 
-use pombase_gocam_process::{model_connections_to_cytoscope, model_to_cytoscape_simple, GoCamCytoscapeStyle};
+use pombase_gocam_process::{find_holes, model_connections_to_cytoscope, model_to_cytoscape_simple, GoCamCytoscapeStyle};
 use serde_json::{json, Value};
 
 use tracing_subscriber::EnvFilter;
@@ -22,7 +22,7 @@ use std::{collections::{BTreeSet, HashMap, HashSet}, io::Cursor, fs, process, sy
 
 use getopts::Options;
 
-use pombase_gocam::{parse_gocam_model, GoCamGeneIdentifier, GoCamModel, GoCamModelId, GoCamNodeOverlap, RemoveType};
+use pombase_gocam::{parse_gocam_model, GoCamGeneIdentifier, GoCamModel, GoCamModelId, GoCamNode, GoCamNodeOverlap, RemoveType};
 
 type GoCamModelMap = HashMap<GoCamModelId, GoCamModel>;
 
@@ -39,6 +39,7 @@ struct AllState {
     model_dir: String,
     gocam_models_by_id: GoCamModelMap,
     overlaps: Vec<GoCamNodeOverlap>,
+    missing_activities: Vec<GoCamNode>,
 }
 
 fn read_gocam_models_from_dir(model_dir: &str)
@@ -221,6 +222,23 @@ async fn get_index(State(all_state): State<Arc<AllState>>) -> Response {
     get_static_file(&format!("{}/index.html", web_root_dir)).await
 }
 
+async fn get_overlaps(State(all_state): State<Arc<AllState>>)
+     -> impl IntoResponse
+{
+    let overlaps = &all_state.overlaps;
+
+    Json(overlaps.to_owned())
+}
+
+async fn get_missing_activities(State(all_state): State<Arc<AllState>>)
+     -> impl IntoResponse
+{
+    let holes = &all_state.missing_activities;
+
+    Json(holes.to_owned())
+}
+
+
 async fn get_cytoscape_gocam_by_id(Path(gocam_id_arg): Path<String>,
                                    State(all_state): State<Arc<AllState>>)
        -> impl IntoResponse
@@ -401,12 +419,16 @@ async fn main() {
             tokio::net::TcpListener::bind("0.0.0.0:9500").await.unwrap()
         };
 
-    let overlaps: Vec<GoCamNodeOverlap> = GoCamModel::find_overlaps(&gocam_models);
+    let overlaps = GoCamModel::find_overlaps(&gocam_models);
+
+    let missing_activities = gocam_models.iter()
+        .flat_map(|m| find_holes(m)).collect();
 
     let all_state = AllState {
         web_root_dir,
         gocam_models_by_id,
         overlaps,
+        missing_activities,
         model_dir: gocam_model_dir,
     };
 
@@ -417,6 +439,8 @@ async fn main() {
         .route("/cytoscape/model_summary/connected_only", get(get_model_summary_for_cytoscape_connected))
         .route("/cytoscape/model_view/{gocam_id}", get(get_cytoscape_gocam_by_id))
         .route("/cytoscape/model_view/{gocam_id}/{retain_genes}", get(get_cytoscape_gocam_by_id_retain_genes))
+        .route("/missing_activities", get(get_missing_activities))
+        .route("/overlaps", get(get_overlaps))
         .fallback(not_found)
         .with_state(Arc::new(all_state))
         .layer(TraceLayer::new_for_http());
