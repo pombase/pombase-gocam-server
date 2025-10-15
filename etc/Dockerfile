@@ -36,10 +36,10 @@ RUN (curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --p
      (cd pombase-gocam-server; rustup default stable; cargo build --profile releasedev) && \
      rm -r $HOME/.rustup)
 
-HEALTHCHECK --start-period=20s --interval=10s --timeout=20s --retries=10 \
+HEALTHCHECK --start-period=20s --interval=20s --timeout=20s --retries=20 \
   CMD /pombase-gocam-server/etc/healthcheck
 
 CMD /pombase-gocam-server/etc/start_all.sh
 
 # server setup
-# docker service create --publish 9999:9999 --publish 9400:9400 --env mod_url="http://flybase.org" --name gocam-server-fly --replicas 1 pombase/gocam-server:v0.6.0
+# docker service create --publish 9999:9999 --publish 9400:9400 --env mod_url="http://flybase.org" --name gocam-server-fly --replicas 1 pombase/gocam-server:v0.9.0
